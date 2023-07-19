@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <stdexcept>
 
 #include "byte_stream.hh"
@@ -8,14 +9,14 @@ ByteStream::ByteStream( uint64_t capacity ) : capacity_( capacity ) {}
 
 void Writer::push( string data )
 {
-  size_t i = 0;
-  for ( ; i < data.length(); i++ ) {
-    if ( !stream_push( data[i] ) ) {
-      break;
-    }
+  const uint64_t available = available_capacity();
+
+  if ( data.size() > available ) {
+    data.erase( available );
   }
 
-  data.erase( 0, i );
+  bytes_write += data.size();
+  stream_push( std::move( data ) );
 }
 
 void Writer::close()
@@ -60,7 +61,10 @@ bool Reader::has_error() const
 
 void Reader::pop( uint64_t len )
 {
-  stream_pop(len);
+  const uint64_t _len = std::min( bytes_buffered(), len );
+
+  stream_pop( _len );
+  bytes_read += _len;
 }
 
 uint64_t Reader::bytes_buffered() const
