@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <queue>
 #include <stdexcept>
 #include <string>
@@ -10,9 +11,16 @@ class Writer;
 
 class ByteStream
 {
+private:
+  std::deque<char> stream = {};
+
 protected:
   uint64_t capacity_;
   // Please add any additional state to the ByteStream here, and not to the Writer and Reader interfaces.
+  bool closed = {};
+  bool errored = {};
+  uint64_t bytes_write = {};
+  uint64_t bytes_read = {};
 
 public:
   explicit ByteStream( uint64_t capacity );
@@ -22,6 +30,37 @@ public:
   const Reader& reader() const;
   Writer& writer();
   const Writer& writer() const;
+
+  // Helper functions of stream data
+  bool stream_is_empty() const { return stream.empty(); }
+  uint64_t stream_buffered() const { return stream.size(); }
+  bool stream_push( char c )
+  {
+    if ( stream_buffered() >= capacity_ ) {
+      return false;
+    }
+
+    stream.push_back( c );
+    bytes_write++;
+    return true;
+  }
+  void stream_pop( uint64_t len )
+  {
+    uint64_t _len = std::min(len, stream.size());
+    for ( uint64_t i = 0; i < _len; i++ ) {
+      stream.pop_front();
+      bytes_read++;
+    }
+  }
+  std::string_view stream_peek() const
+  {
+    static std::string s {};
+    s.clear();
+    for ( const auto& i : stream ) {
+      s.push_back( i );
+    }
+    return std::string_view { s };
+  }
 };
 
 class Writer : public ByteStream
