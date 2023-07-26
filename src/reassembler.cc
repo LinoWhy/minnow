@@ -132,9 +132,8 @@ void Reassembler::buffer_insert( uint64_t first_index, std::string& data )
 
     // partially overlapped
     if ( it_end > first_index && it_end < end_index ) {
-      const uint64_t len = it->second.length();
       it->second.erase( first_index - it->first );
-      _unassembled_bytes -= ( len - first_index );
+      _unassembled_bytes -= ( it_end - first_index );
     }
     it++;
   }
