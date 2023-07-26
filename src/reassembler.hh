@@ -2,10 +2,22 @@
 
 #include "byte_stream.hh"
 
+#include <list>
+#include <optional>
 #include <string>
+#include <utility>
+
+using ReassemblerBuffer = std::pair<uint64_t, std::string>;
 
 class Reassembler
 {
+private:
+  uint64_t _eof_index = -1;
+  uint64_t _unassembled_bytes = {};
+  uint64_t _unassembled_index = {};
+  std::list<ReassemblerBuffer> _unassembled_buffer = {};
+  bool _tailor_consume_str( uint64_t first_index, std::string&& data, Writer& output );
+
 public:
   /*
    * Insert a new substring to be reassembled into a ByteStream.
@@ -31,4 +43,11 @@ public:
 
   // How many bytes are stored in the Reassembler itself?
   uint64_t bytes_pending() const;
+
+  // Helper function for unassembled buffer
+  bool buffer_empty();
+  void buffer_update();
+  void buffer_insert( uint64_t first_index, std::string&& data );
+  std::optional<ReassemblerBuffer> buffer_peak();
+  void buffer_pop();
 };
