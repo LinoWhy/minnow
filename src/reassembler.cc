@@ -6,9 +6,15 @@
 
 using namespace std;
 
-bool Reassembler::_tailor_consume_str( uint64_t first_index, std::string&& data, Writer& output )
+bool Reassembler::_check_str( uint64_t& first_index, std::string& data, Writer& output ) const
 {
   const uint64_t cap = output.available_capacity();
+
+  // discard bytes beyond the available capacity
+  if ( output.available_capacity() == 0 || first_index + data.length() < _unassembled_index
+       || first_index >= _unassembled_index + output.available_capacity() ) {
+    return false;
+  }
 
   // adjust data that overlaps the first unassembled index
   if ( first_index < _unassembled_index ) {
@@ -18,9 +24,14 @@ bool Reassembler::_tailor_consume_str( uint64_t first_index, std::string&& data,
 
   // adjust data that overlaps the capacity
   if ( first_index + data.length() > _unassembled_index + cap ) {
-    data.erase( _unassembled_index + cap );
+    data.erase( _unassembled_index + cap - first_index );
   }
 
+  return true;
+}
+
+bool Reassembler::_push_str( uint64_t first_index, std::string& data, Writer& output )
+{
   if ( first_index == _unassembled_index ) {
     output.push( data );
     _unassembled_index += data.length();
@@ -35,26 +46,27 @@ bool Reassembler::_tailor_consume_str( uint64_t first_index, std::string&& data,
 
 void Reassembler::insert( uint64_t first_index, string data, bool is_last_substring, Writer& output )
 {
-  bool consumed = {};
+  bool valid = {};
+  bool pushed = {};
   std::optional<ReassemblerBuffer> peek = {};
   ReassemblerBuffer buf = {};
+
+  // check & tailor data according to capacity
+  valid = _check_str( first_index, data, output );
+  if ( !valid ) {
+    return;
+  }
 
   // store the EOF index
   if ( is_last_substring ) {
     _eof_index = first_index;
   }
 
-  // discard bytes beyond the available capacity
-  if ( output.available_capacity() == 0 || first_index + data.length() < _unassembled_index
-       || first_index >= _unassembled_index + output.available_capacity() ) {
-    return;
-  }
-
-  // data will be tailored then tried to push to output if it fits
-  consumed = _tailor_consume_str( first_index, std::move( data ), output );
-  if ( !consumed ) {
-    // push data into buffer
-    buffer_insert( first_index, std::move( data ) );
+  // push data to output if it fits
+  pushed = _push_str( first_index, data, output );
+  if ( !pushed ) {
+    // push data into unassembled buffer
+    buffer_insert( first_index, data );
   } else {
     // update buffer since unassembled index is changed
     buffer_update();
@@ -66,8 +78,13 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
     }
 
     buf = peek.value();
-    consumed = _tailor_consume_str( buf.first, std::move( buf.second ), output );
-    while ( consumed ) {
+    valid = _check_str( buf.first, buf.second, output );
+    if ( !valid ) {
+      return;
+    }
+
+    pushed = _push_str( buf.first, buf.second, output );
+    while ( pushed ) {
       buffer_pop();
 
       peek = buffer_peak();
@@ -76,7 +93,12 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
       }
 
       buf = peek.value();
-      consumed = _tailor_consume_str( buf.first, std::move( buf.second ), output );
+      valid = _check_str( buf.first, buf.second, output );
+      if ( !valid ) {
+        break;
+      }
+
+      pushed = _push_str( buf.first, buf.second, output );
     }
   }
 }
@@ -86,7 +108,7 @@ uint64_t Reassembler::bytes_pending() const
   return _unassembled_bytes;
 }
 
-void Reassembler::buffer_insert( uint64_t first_index, std::string&& data )
+void Reassembler::buffer_insert( uint64_t first_index, std::string& data )
 {
   auto it = _unassembled_buffer.begin();
   const auto tail = _unassembled_buffer.end();
@@ -111,7 +133,7 @@ void Reassembler::buffer_insert( uint64_t first_index, std::string&& data )
     // partially overlapped
     if ( it_end > first_index && it_end < end_index ) {
       const uint64_t len = it->second.length();
-      it->second.erase( first_index );
+      it->second.erase( first_index - it->first );
       _unassembled_bytes -= ( len - first_index );
     }
     it++;
@@ -130,6 +152,7 @@ void Reassembler::buffer_insert( uint64_t first_index, std::string&& data )
       // partially overlapped
       const uint64_t num = end_index - it->first;
       it->second.erase( 0, num );
+      it->first = end_index;
       _unassembled_bytes -= num;
       it++;
     }
@@ -165,7 +188,7 @@ void Reassembler::buffer_update()
   auto it = _unassembled_buffer.begin();
   const auto tail = _unassembled_buffer.end();
 
-  // only remove totally overlapped data
+  // remove totally overlapped data
   while ( it != tail && it->first + it->second.length() < _unassembled_index ) {
     _unassembled_bytes -= it->second.length();
     it = _unassembled_buffer.erase( it );

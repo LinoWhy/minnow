@@ -16,7 +16,8 @@ private:
   uint64_t _unassembled_bytes = {};
   uint64_t _unassembled_index = {};
   std::list<ReassemblerBuffer> _unassembled_buffer = {};
-  bool _tailor_consume_str( uint64_t first_index, std::string&& data, Writer& output );
+  bool _check_str( uint64_t& first_index, std::string& data, Writer& output ) const;
+  bool _push_str( uint64_t first_index, std::string& data, Writer& output );
 
 public:
   /*
@@ -47,7 +48,7 @@ public:
   // Helper function for unassembled buffer
   bool buffer_empty();
   void buffer_update();
-  void buffer_insert( uint64_t first_index, std::string&& data );
+  void buffer_insert( uint64_t first_index, std::string& data );
   std::optional<ReassemblerBuffer> buffer_peak();
   void buffer_pop();
 };
