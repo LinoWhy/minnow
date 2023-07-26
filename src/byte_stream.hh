@@ -11,22 +11,22 @@ class Writer;
 class ByteStream
 {
 private:
-  std::string stream = {};
+  std::string _stream = {};
 
 protected:
   uint64_t capacity_;
   // Please add any additional state to the ByteStream here, and not to the Writer and Reader interfaces.
-  bool closed = {};
-  bool errored = {};
-  uint64_t bytes_write = {};
-  uint64_t bytes_read = {};
+  bool closed_ = {};
+  bool errored_ = {};
+  uint64_t bytes_write_ = {};
+  uint64_t bytes_read_ = {};
 
   // Helper functions of stream data
-  bool stream_is_empty() const { return stream.empty(); }
-  uint64_t stream_buffered() const { return stream.size(); }
-  void stream_push( std::string&& data ) { stream.append( data ); }
-  void stream_pop( uint64_t len ) { stream.erase( 0, len ); }
-  std::string_view stream_peek() const { return std::string_view { stream }; }
+  bool stream_is_empty_() const;
+  uint64_t stream_buffered_() const;
+  void stream_push_( std::string& data );
+  void stream_pop_( uint64_t len );
+  std::string_view stream_peek_() const;
 
 public:
   explicit ByteStream( uint64_t capacity );
