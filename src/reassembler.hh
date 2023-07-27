@@ -19,6 +19,13 @@ private:
   bool _check_str( uint64_t& first_index, std::string& data, Writer& output ) const;
   bool _push_str( uint64_t first_index, std::string& data, Writer& output );
 
+  // Helper function for unassembled buffer
+  bool _buffer_empty();
+  void _buffer_update();
+  void _buffer_insert( uint64_t first_index, std::string& data );
+  std::optional<ReassemblerBuffer> _buffer_peak();
+  void _buffer_pop();
+
 public:
   /*
    * Insert a new substring to be reassembled into a ByteStream.
@@ -44,11 +51,4 @@ public:
 
   // How many bytes are stored in the Reassembler itself?
   uint64_t bytes_pending() const;
-
-  // Helper function for unassembled buffer
-  bool buffer_empty();
-  void buffer_update();
-  void buffer_insert( uint64_t first_index, std::string& data );
-  std::optional<ReassemblerBuffer> buffer_peak();
-  void buffer_pop();
 };

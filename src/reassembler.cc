@@ -66,13 +66,13 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
   pushed = _push_str( first_index, data, output );
   if ( !pushed ) {
     // push data into unassembled buffer
-    buffer_insert( first_index, data );
+    _buffer_insert( first_index, data );
   } else {
     // update buffer since unassembled index is changed
-    buffer_update();
+    _buffer_update();
 
     // check unassembled buffer
-    peek = buffer_peak();
+    peek = _buffer_peak();
     if ( !peek.has_value() ) {
       return;
     }
@@ -85,9 +85,9 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
 
     pushed = _push_str( buf.first, buf.second, output );
     while ( pushed ) {
-      buffer_pop();
+      _buffer_pop();
 
-      peek = buffer_peak();
+      peek = _buffer_peak();
       if ( !peek.has_value() ) {
         break;
       }
@@ -108,7 +108,7 @@ uint64_t Reassembler::bytes_pending() const
   return _unassembled_bytes;
 }
 
-void Reassembler::buffer_insert( uint64_t first_index, std::string& data )
+void Reassembler::_buffer_insert( uint64_t first_index, std::string& data )
 {
   auto it = _unassembled_buffer.begin();
   const auto tail = _unassembled_buffer.end();
@@ -158,7 +158,7 @@ void Reassembler::buffer_insert( uint64_t first_index, std::string& data )
   }
 }
 
-std::optional<ReassemblerBuffer> Reassembler::buffer_peak()
+std::optional<ReassemblerBuffer> Reassembler::_buffer_peak()
 {
   if ( _unassembled_buffer.empty() ) {
     return std::nullopt;
@@ -166,7 +166,7 @@ std::optional<ReassemblerBuffer> Reassembler::buffer_peak()
   return _unassembled_buffer.front();
 }
 
-void Reassembler::buffer_pop()
+void Reassembler::_buffer_pop()
 {
   if ( _unassembled_buffer.empty() ) {
     return;
@@ -177,12 +177,12 @@ void Reassembler::buffer_pop()
   _unassembled_bytes -= len;
 }
 
-bool Reassembler::buffer_empty()
+bool Reassembler::_buffer_empty()
 {
   return _unassembled_buffer.empty();
 }
 
-void Reassembler::buffer_update()
+void Reassembler::_buffer_update()
 {
   auto it = _unassembled_buffer.begin();
   const auto tail = _unassembled_buffer.end();
