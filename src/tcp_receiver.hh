@@ -6,6 +6,12 @@
 
 class TCPReceiver
 {
+private:
+  bool _synced {};
+  Wrap32 _initial_seqno { 0 };
+  uint64_t _next_abs_seqno {};
+  uint64_t _next_stream_index {};
+
 public:
   /*
    * The TCPReceiver receives TCPSenderMessages, inserting their payload into the Reassembler
