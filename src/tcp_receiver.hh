@@ -11,6 +11,7 @@ private:
   Wrap32 _initial_seqno { 0 };
   uint64_t _next_abs_seqno {};
   uint64_t _next_stream_index {};
+  uint64_t _last_bytes_pushed {};
 
 public:
   /*
