@@ -3,11 +3,22 @@
 #include "byte_stream.hh"
 #include "tcp_receiver_message.hh"
 #include "tcp_sender_message.hh"
+#include <deque>
 
 class TCPSender
 {
   Wrap32 isn_;
   uint64_t initial_RTO_ms_;
+  Wrap32 _ack_seqno;
+  bool _first = true;
+  uint64_t _next_abs_seqno {};
+  uint16_t _window_size {};
+  uint64_t _outstanding_num {};
+  uint64_t _retransmission_cnt {};
+  std::deque<TCPSenderMessage> _send_queue {};
+  std::deque<TCPSenderMessage> _retransmission_queue {};
+
+  uint64_t _get_avaliable_size(Reader& outbound_stream) const;
 
 public:
   /* Construct TCP sender with given default Retransmission Timeout and possible ISN */
