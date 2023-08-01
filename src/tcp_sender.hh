@@ -5,20 +5,34 @@
 #include "tcp_sender_message.hh"
 #include <deque>
 
+class Timer
+{
+  uint64_t _current_ms {};
+
+public:
+  void start_timer( uint64_t threshold_ms );
+  void stop_timer();
+  bool update_timer( uint64_t ms_since_last_tick );
+};
+
 class TCPSender
 {
   Wrap32 isn_;
   uint64_t initial_RTO_ms_;
-  Wrap32 _ack_seqno;
+
   bool _first = true;
-  uint64_t _next_abs_seqno {};
+  bool _closed {};
+  Wrap32 _ack_seqno;
   uint16_t _window_size {};
+  uint64_t _next_abs_seqno {};
   uint64_t _outstanding_num {};
   uint64_t _retransmission_cnt {};
   std::deque<TCPSenderMessage> _send_queue {};
   std::deque<TCPSenderMessage> _retransmission_queue {};
+  uint64_t _current_RTO_ms;
+  Timer _timer {};
 
-  uint64_t _get_avaliable_size(Reader& outbound_stream) const;
+  uint64_t _get_avaliable_size( Reader& outbound_stream );
 
 public:
   /* Construct TCP sender with given default Retransmission Timeout and possible ISN */
