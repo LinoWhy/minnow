@@ -32,6 +32,8 @@ class TCPSender
 
   bool _first = true;
   bool _closed {};
+  bool _received {};
+  bool _attempted {};
   Wrap32 _ack_seqno;
   uint16_t _window_size {};
   uint64_t _next_abs_seqno {};
@@ -42,7 +44,7 @@ class TCPSender
   uint64_t _current_RTO_ms;
   Timer _timer {};
 
-  uint64_t _get_avaliable_size( Reader& outbound_stream );
+  uint64_t _get_avaliable_size( bool& syn, Reader& outbound_stream, bool& fin );
 
 public:
   /* Construct TCP sender with given default Retransmission Timeout and possible ISN */
