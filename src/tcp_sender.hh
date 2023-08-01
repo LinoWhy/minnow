@@ -4,6 +4,7 @@
 #include "tcp_receiver_message.hh"
 #include "tcp_sender_message.hh"
 #include <deque>
+#include <queue>
 
 class Timer
 {
@@ -13,6 +14,15 @@ public:
   void start_timer( uint64_t threshold_ms );
   void stop_timer();
   bool update_timer( uint64_t ms_since_last_tick );
+};
+
+struct cmp
+{
+  bool operator()( const TCPSenderMessage& left, const TCPSenderMessage& right )
+  {
+    Wrap32 zero { 0 };
+    return left.seqno.unwrap( zero, 0 ) > right.seqno.unwrap( zero, 0 );
+  }
 };
 
 class TCPSender
@@ -28,7 +38,7 @@ class TCPSender
   uint64_t _outstanding_num {};
   uint64_t _retransmission_cnt {};
   std::deque<TCPSenderMessage> _send_queue {};
-  std::deque<TCPSenderMessage> _retransmission_queue {};
+  std::priority_queue<TCPSenderMessage, std::vector<TCPSenderMessage>, cmp> _retransmission_queue {};
   uint64_t _current_RTO_ms;
   Timer _timer {};
 

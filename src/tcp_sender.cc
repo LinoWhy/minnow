@@ -82,7 +82,7 @@ optional<TCPSenderMessage> TCPSender::maybe_send()
 
   msg = _send_queue.front();
   _send_queue.pop_front();
-  _retransmission_queue.push_back( msg );
+  _retransmission_queue.push( msg );
   return msg;
 }
 
@@ -145,14 +145,14 @@ void TCPSender::receive( const TCPReceiverMessage& msg )
   _ack_seqno = msg.ackno.value();
 
   while ( !_retransmission_queue.empty() ) {
-    TCPSenderMessage message = _retransmission_queue.front();
+    TCPSenderMessage message = _retransmission_queue.top();
     const uint64_t seqno = message.seqno.unwrap( isn_, _next_abs_seqno );
 
     // Remove from the retransmission queue, if all sequence number are acknowledged.
     if ( seqno + message.sequence_length() > ack_seq ) {
       break;
     }
-    _retransmission_queue.pop_front();
+    _retransmission_queue.pop();
     _outstanding_num -= message.sequence_length();
   }
 
@@ -178,9 +178,9 @@ void TCPSender::tick( const size_t ms_since_last_tick )
 
   // Retransmit data
   if ( !_retransmission_queue.empty() ) {
-    TCPSenderMessage msg = _retransmission_queue.front();
+    TCPSenderMessage msg = _retransmission_queue.top();
     _send_queue.push_back( msg );
-    _retransmission_queue.pop_front();
+    _retransmission_queue.pop();
   }
 
   _retransmission_cnt++;
