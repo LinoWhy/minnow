@@ -51,14 +51,16 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
   std::optional<ReassemblerBuffer> peek = {};
   ReassemblerBuffer buf = {};
 
+  uint64_t eof_pos = first_index + data.length();
+
   // check & tailor data according to capacity
   valid = _check_str( first_index, data, output );
   if ( !valid ) {
     return;
   }
 
-  // store the EOF index
-  if ( is_last_substring ) {
+  // store the EOF index if EOF position is not changed
+  if ( is_last_substring && !( eof_pos != first_index + data.length() ) ) {
     _eof_index = first_index;
   }
 
