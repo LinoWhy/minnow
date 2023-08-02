@@ -107,7 +107,7 @@ void TCPSender::push( Reader& outbound_stream )
   bool fin {};
 
   num = _get_avaliable_size( syn, outbound_stream, fin );
-  while ( _first || num > 0 ) {
+  while ( num > 0 ) {
     TCPSenderMessage msg {};
 
     read( outbound_stream, num, str );
@@ -115,7 +115,7 @@ void TCPSender::push( Reader& outbound_stream )
     msg.SYN = syn;
     msg.FIN = fin;
 
-    // Piggyback FIN after read and space is available
+    // Piggyback FIN after read when space is available
     if ( msg.sequence_length() < _window_size && outbound_stream.is_finished() ) {
       _closed = true;
       msg.FIN = true;
