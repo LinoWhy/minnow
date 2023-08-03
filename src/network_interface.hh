@@ -6,8 +6,10 @@
 
 #include <iostream>
 #include <list>
+#include <map>
 #include <optional>
 #include <queue>
+#include <set>
 #include <unordered_map>
 #include <utility>
 
@@ -40,6 +42,11 @@ private:
 
   // IP (known as Internet-layer or network-layer) address of the interface
   Address ip_address_;
+
+  std::map<uint32_t, EthernetAddress> _ip_eth_map {};
+  std::set<uint32_t> _wait_ip {};
+  std::queue<EthernetFrame> _send_msg {};
+  std::map<uint32_t, std::deque<EthernetFrame>> _wait_msg {};
 
 public:
   // Construct a network interface with given Ethernet (network-access-layer) and IP (internet-layer)
