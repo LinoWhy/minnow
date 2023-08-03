@@ -13,6 +13,15 @@
 #include <unordered_map>
 #include <utility>
 
+class EthElem
+{
+public:
+  EthernetAddress address;
+  uint64_t timer;
+
+  EthElem( const EthernetAddress& addr, const uint64_t& t );
+};
+
 // A "network interface" that connects IP (the internet layer, or network layer)
 // with Ethernet (the network access layer, or link layer).
 
@@ -43,8 +52,7 @@ private:
   // IP (known as Internet-layer or network-layer) address of the interface
   Address ip_address_;
 
-  std::map<uint32_t, EthernetAddress> _ip_eth_map {};
-  std::set<uint32_t> _wait_ip {};
+  std::map<uint32_t, EthElem> _ip_eth_map {};
   std::queue<EthernetFrame> _send_msg {};
   std::map<uint32_t, std::deque<EthernetFrame>> _wait_msg {};
 

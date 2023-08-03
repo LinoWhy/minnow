@@ -6,6 +6,11 @@
 
 using namespace std;
 
+constexpr uint64_t ARP_CYCLE_MS = 5000;
+constexpr uint64_t CACHE_LAST_MS = 30000;
+
+EthElem::EthElem( const EthernetAddress& addr, const uint64_t& t ) : address( addr ), timer( t ) {}
+
 // ethernet_address: Ethernet (what ARP calls "hardware") address of the interface
 // ip_address: IP (what ARP calls "protocol") address of the interface
 NetworkInterface::NetworkInterface( const EthernetAddress& ethernet_address, const Address& ip_address )
@@ -24,27 +29,38 @@ NetworkInterface::NetworkInterface( const EthernetAddress& ethernet_address, con
 void NetworkInterface::send_datagram( const InternetDatagram& dgram, const Address& next_hop )
 {
   EthernetFrame msg_dgram {};
-  uint32_t address = next_hop.ipv4_numeric();
+  uint32_t ip_address = next_hop.ipv4_numeric();
 
   msg_dgram.header.src = ethernet_address_;
   msg_dgram.header.type = EthernetHeader::TYPE_IPv4;
   msg_dgram.payload = serialize( dgram );
 
   // known ip address
-  auto search = _ip_eth_map.find( address );
-  if ( search != _ip_eth_map.end() ) {
-    msg_dgram.header.dst = search->second;
+  auto search = _ip_eth_map.find( ip_address );
+  if ( search != _ip_eth_map.end() && search->second.address != EthernetAddress {} && search->second.timer > 0 ) {
+    msg_dgram.header.dst = search->second.address;
     _send_msg.push( msg_dgram );
     return;
   }
 
-  // unknown ip address
+  // unknown ip address but the ARP message was sent recently
+  if ( search != _ip_eth_map.end() && search->second.timer > 0 ) {
+    return;
+  }
+
+  // new unknown ip address
+  auto [elem, inserted] = _ip_eth_map.insert( { ip_address, { EthernetAddress {}, ARP_CYCLE_MS } } );
+  if ( !inserted ) {
+    elem->second.address = EthernetAddress {};
+    elem->second.timer = ARP_CYCLE_MS;
+  }
+
   ARPMessage arp {};
   arp.opcode = ARPMessage::OPCODE_REQUEST;
   arp.sender_ethernet_address = ethernet_address_;
   arp.sender_ip_address = ip_address_.ipv4_numeric();
   arp.target_ethernet_address = {};
-  arp.target_ip_address = address;
+  arp.target_ip_address = ip_address;
 
   EthernetFrame msg {};
   msg.header.src = ethernet_address_;
@@ -53,7 +69,7 @@ void NetworkInterface::send_datagram( const InternetDatagram& dgram, const Addre
   msg.payload = serialize( arp );
 
   _send_msg.push( msg );
-  auto [it, _] = _wait_msg.insert( { address, {} } );
+  auto [it, _] = _wait_msg.insert( { ip_address, {} } );
   it->second.push_back( msg_dgram );
 }
 
@@ -79,7 +95,14 @@ optional<InternetDatagram> NetworkInterface::recv_frame( const EthernetFrame& fr
   }
 
   // Trust all ARP message
-  _ip_eth_map.insert( { arp.sender_ip_address, arp.sender_ethernet_address } );
+  auto [elem, inserted]
+    = _ip_eth_map.insert( { arp.sender_ip_address, { arp.sender_ethernet_address, CACHE_LAST_MS } } );
+  if ( !inserted ) {
+    elem->second.address = arp.sender_ethernet_address;
+    elem->second.timer = CACHE_LAST_MS;
+  }
+  // EthElem elm = { arp.sender_ethernet_address, CACHE_LAST_MS };
+  // _ip_eth_map[arp.sender_ip_address] = elm;
 
   // Reply ARP request
   if ( arp.opcode == ARPMessage::OPCODE_REQUEST && arp.target_ip_address == ip_address_.ipv4_numeric() ) {
@@ -118,7 +141,13 @@ optional<InternetDatagram> NetworkInterface::recv_frame( const EthernetFrame& fr
 // ms_since_last_tick: the number of milliseconds since the last call to this method
 void NetworkInterface::tick( const size_t ms_since_last_tick )
 {
-  (void)ms_since_last_tick;
+  for ( auto& [_, elem] : _ip_eth_map ) {
+    if ( elem.timer > ms_since_last_tick ) {
+      elem.timer -= ms_since_last_tick;
+    } else {
+      elem.timer = 0;
+    }
+  }
 }
 
 optional<EthernetFrame> NetworkInterface::maybe_send()
