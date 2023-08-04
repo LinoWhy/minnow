@@ -36,7 +36,7 @@ void Router::add_route( const uint32_t route_prefix,
 
 std::optional<Route> Router::_get_best_route( uint32_t address )
 {
-  Route matched {};
+  std::optional<Route> matched {};
   uint32_t longest_prefix {};
 
   if ( _route_table.empty() ) {
@@ -48,7 +48,7 @@ std::optional<Route> Router::_get_best_route( uint32_t address )
 
     // matched route or default one
     if ( route.prefix_length == 0 || prefix >> ( 32U - route.prefix_length ) == 0 ) {
-      if ( longest_prefix < route.prefix_length ) {
+      if ( longest_prefix <= route.prefix_length ) {
         longest_prefix = route.prefix_length;
         matched = route;
       }
@@ -61,9 +61,12 @@ std::optional<Route> Router::_get_best_route( uint32_t address )
 void Router::route()
 {
   for ( auto& intf : interfaces_ ) {
-    std::optional<InternetDatagram> received = intf.maybe_receive();
-    while ( received.has_value() ) {
-      InternetDatagram dgram = received.value(); // NOLINT
+    while ( true ) {
+      std::optional<InternetDatagram> received = intf.maybe_receive();
+      if ( !received.has_value() ) {
+        break;
+      }
+      InternetDatagram dgram = received.value();
 
       // check TTL
       if ( dgram.header.ttl <= 1 ) {
