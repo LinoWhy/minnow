@@ -2,6 +2,7 @@
 
 #include "network_interface.hh"
 
+#include <map>
 #include <optional>
 #include <queue>
 
@@ -48,12 +49,22 @@ public:
   }
 };
 
+struct Route
+{
+  uint8_t prefix_length {};
+  std::optional<Address> next_hop {};
+  size_t interface_num {};
+};
+
 // A router that has multiple network interfaces and
 // performs longest-prefix-match routing between them.
 class Router
 {
   // The router's collection of network interfaces
   std::vector<AsyncNetworkInterface> interfaces_ {};
+  std::map<uint32_t, Route> _route_table {};
+
+  std::optional<Route> _get_best_route( uint32_t address );
 
 public:
   // Add an interface to the router
