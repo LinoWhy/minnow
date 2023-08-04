@@ -82,9 +82,9 @@ void Router::route()
       }
       Route route = matched.value();
 
-      cerr << "===============\nTarget address: " << Address::from_ipv4_numeric( dgram.header.dst ).to_string()
-           << "; Get route => " << ( route.next_hop.has_value() ? route.next_hop.value().to_string() : "(direct)" )
-           << " on interface " << route.interface_num << "\n===============\n";
+      // cerr << "===============\nTarget address: " << Address::from_ipv4_numeric( dgram.header.dst ).to_string()
+      //      << "; Get route => " << ( route.next_hop.has_value() ? route.next_hop.value().to_string() : "(direct)" )
+      //      << " on interface " << route.interface_num << "\n===============\n";
 
       if ( route.next_hop.has_value() ) {
         interface( route.interface_num ).send_datagram( dgram, route.next_hop.value() );

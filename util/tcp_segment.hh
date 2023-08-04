@@ -8,7 +8,7 @@
 struct TCPSegment
 {
   TCPSenderMessage sender_message {};
-  TCPReceiverMessage receiver_message {};
+  TCPReceiverMessage receiver_message { std::nullopt, 0 };
   bool reset {}; // Connection experienced an abnormal error and should be shut down
   UserDatagramInfo udinfo {};
 
